@@ -1,0 +1,334 @@
+openapi: 3.0.0
+info:
+  title: e2f api
+  description: |-
+    The e2f API provides an interface for managing annotation tasks, which includes the following key functionality:
+      - **Submission of New Annotation Tasks**:  submit new annotation tasks to the system, facilitating the streamlined input of data for annotation.
+      - **Retrieval of Annotations**:  fetch annotations, ensuring easy access to the results of annotation tasks.
+  version: 1.0.0
+servers:
+  - url: https://api.e2f.com/v1
+tags:
+  - name: annotation
+    description: Everything about annotation tasks
+paths:
+  /annotations:
+    post:
+      security:
+        - oAuth2ClientCredentials: [] # TBD
+        - oAuthNoScopes: [] # TBD
+      tags:
+        - annotation
+      summary: Submit annotation task
+      description: Submit a new annotation task
+      operationId: submitAnnotationTask
+      requestBody:
+        description: List of annotation requests. # V1 only one annotation request per call is allowed
+        required: true
+        content:
+          application/json:
+            example: [
+              {
+                  "uid": "e1de0575ffed23d5edbfbce05bb8cd83db31957f6c43ff548c1ce5a294b841bd",
+                  "locale": "en-US", # {Language code: ISO 639}-{Region Code: ISO 3166}
+                  "domains": [
+                    {
+                      "domain": "generic"
+                    }
+                  ], # Value from a predefined list of up to 10 domains including generic and others.
+                  "context": {
+                      "description": "A general description of the context can be placed on this field to help the annotator make better decitions",
+                      "conversationHistory": [
+                          {
+                              "date": "2024-10-01 12:24:45", # Date Format: ISO 8601
+                              "prompt": "I want to visit Europe in the spring. Can you recommend some places?",
+                              "response": "Sure! In spring, many European destinations are beautiful. You might enjoy Amsterdam for its tulip season, Paris for its blooming gardens, or the Amalfi Coast for its scenic coastline. Would you prefer a city adventure or something more nature-focused?"
+                          },
+                          {
+                              "date": "2024-10-01 12:24:54",
+                              "prompt": "I think I'd prefer something nature-focused. What about hiking?",
+                              "response": "For hiking, the Dolomites in Italy are stunning in spring. Another great option is the Scottish Highlands, where the weather is mild and the landscapes are breathtaking. Do you have a specific country in mind?"
+                          }
+                      ]
+                  },
+                  "date": "2024-10-01 12:25:54",
+                  "prompt": "The Dolomites sound amazing! What is the best time to visit, and are there beginner-friendly hiking trails?",
+                  "responses": [
+                      {
+                          "uid": "e1de0575ffed23d5edbfbce05bb8cd83db31957f6c43ff548c1ce5a2945674ab",
+                          "date": "2024-10-01 12:25:55",
+                          "response": "The best time to visit the Dolomites is from May to September. For beginners, the Alpe di Siusi offers beautiful views with easy trails, perfect for first-time hikers."
+                      }
+                  ]
+              }
+            ]
+      responses:
+        '200':
+          description: Annotation task successfully submitted
+          content:
+            application/json:
+              example: [
+                {
+                  "uid": "e1de0575ffed23d5edbfbce05bb8cd83db31957f6c43ff548c1ce5a294b841bd",
+                  "annotationId": "550e8400-e29b-41d4-a716-446655440000", # uuid format RFC 4122
+                  "status": "pending",
+                  "message": "Annotation task has been queued"
+                }
+              ]
+        '400':
+          description: Invalid input, details provided in the error message
+          content:
+            application/json:
+              example: { "message": "Bad Request. Invalid format locale is required.", "statusCode": 400 }
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              example: { "message": "Internal error", "statusCode": 500 }
+
+  /annotations/{annotationId}:
+    get:
+      security:
+        - oAuth2ClientCredentials: [] #TBD
+        - oAuthNoScopes: [] #TBD
+      tags:
+        - annotation
+      summary: Get annotation by annotationId
+      description: Retrieve the annotation from a specific annotationId.
+      operationId: getAnnotationById
+      parameters:
+        - name: annotationId
+          in: path
+          description: Unique annotation task identifier
+          required: true
+          example: 550e8400-e29b-41d4-a716-446655440000
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+             example: {
+                "uid": "e1de0575ffed23d5edbfbce05bb8cd83db31957f6c43ff548c1ce5a294b841bd",
+                "annotationId": "550e8400-e29b-41d4-a716-446655440000",
+                "status": "completed", # pending, inProgress, completed
+                "locale": "en-US", # {Language code: ISO 639}-{Region Code: ISO 3166}
+                "domains": [
+                  {
+                    "domain": "generic"
+                  }
+                ], # Value from a predefined list of up to 10 domains including generic and others.
+                "prompt": {
+                    "value": "The Dolomites sound amazing! What is the best time to visit, and are there beginner-friendly hiking trails?",
+                    "labels": [
+                        {
+                            "label": "intelligibility",
+                            "value": true,
+                            "comment": "Obtional short description on how the above results were obtained"
+                        },
+                        {
+                            "label": "harmlessness",
+                            "value": true,
+                            "comment": "Obtional short description on how the above results were obtained"
+                        },
+                        {
+                            "label": "ambiguity",
+                            "value": true,
+                            "comment": "Obtional short description on how the above results were obtained"
+                        },
+                        {
+                            "label": "inquisitiveness",
+                            "value": true,
+                            "comment": "Obtional short description on how the above results were obtained"
+                        },
+                        {
+                            "label": "time_sensitivity",
+                            "value": true,
+                            "comment": "Obtional short description on how the above results were obtained"
+                        }
+                    ]
+                },
+                "responses": [
+                    {
+                        "uid": "e1de0575ffed23d5edbfbce05bb8cd83db31957f6c43ff548c1ce5a2945674ab",
+                        "response": "The best time to visit the Dolomites is from May to September. For beginners, the Alpe di Siusi offers beautiful views with easy trails, perfect for first-time hikers.",
+                        "labels": [
+                            {
+                                "label": "harmlessness",
+                                "value": 5,
+                                "description": "Obtional short description on how the above results were obtained"
+                            },
+                            {
+                                "label": "honesty",
+                                "value": 5,
+                                "description": "Obtional short description on how the above results were obtained"
+                            },
+                            {
+                                "label": "helpfulness",
+                                "value": 5,
+                                "description": "Obtional short description on how the above results were obtained"
+                            },
+                            {
+                                "label": "naturalness",
+                                "value": 5,
+                                "description": "Obtional short description on how the above results were obtained"
+                            },
+                            {
+                                "label": "readability",
+                                "value": 5,
+                                "description": "Obtional short description on how the above results were obtained"
+                            }
+                        ]
+                    }
+                ]
+              }
+        '400':
+          description: Invalid input, details provided in the error message
+          content:
+            application/json:
+              example: { "message": "Wrong annotation id format", "statusCode": 400 }
+        '404':
+          description: Annotation task not found
+          content:
+            application/json:
+              example: { "message": "Annotation task '<annotationId>' is not found", "statusCode": 404 }
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              example: { "message": "Internal error", "statusCode": 500 }
+
+  /annotations/batch-retrieve:
+    get:
+      security:
+        - oAuth2ClientCredentials: [] #TBD
+        - oAuthNoScopes: [] #TBD
+      tags:
+        - annotation
+      summary: Get list of annotations since a specific sync date
+      description: Retrieve a paginated list of annotations ordered chronologically since a specific sync date.
+      operationId: getAnnotationsSinceSyncDate
+      parameters:
+        - name: syncDate
+          in: query
+          description: Unique annotation task identifier
+          required: false
+          example: "2024-10-01 20:00:01" # Date Format: ISO 8601
+          schema:
+            type: string
+            format: date-time
+        - name: page
+          in: query
+          description: Page number
+          required: false
+          example: 1
+          schema:
+            type: string
+            format: integer
+        - name: pageSize
+          in: query
+          description: The number of items per page
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+             example: {
+              "annotations": [
+                {
+                  "uid": "e1de0575ffed23d5edbfbce05bb8cd83db31957f6c43ff548c1ce5a294b841bd",
+                  "annotationId": "550e8400-e29b-41d4-a716-446655440000",
+                  "status": "completed",
+                  "locale": "en-US", # {Language code: ISO 639}-{Region Code: ISO 3166}
+                  "domains": [
+                    {
+                      "domain": "generic"
+                    }
+                  ], # Value from a predefined list of up to 10 domains including generic and others.
+                  "prompt": {
+                      "value": "The Dolomites sound amazing! What is the best time to visit, and are there beginner-friendly hiking trails?",
+                      "labels": [
+                          {
+                              "label": "intelligibility",
+                              "value": true,
+                              "comment": "Obtional short description on how the above results were obtained"
+                          },
+                          {
+                              "label": "harmlessness",
+                              "value": true,
+                              "comment": "Obtional short description on how the above results were obtained"
+                          },
+                          {
+                              "label": "ambiguity",
+                              "value": true,
+                              "comment": "Obtional short description on how the above results were obtained"
+                          },
+                          {
+                              "label": "inquisitiveness",
+                              "value": true,
+                              "comment": "Obtional short description on how the above results were obtained"
+                          },
+                          {
+                              "label": "time_sensitivity",
+                              "value": true,
+                              "comment": "Obtional short description on how the above results were obtained"
+                          }
+                      ]
+                  },
+                  "responses": [
+                      {
+                          "uid": "e1de0575ffed23d5edbfbce05bb8cd83db31957f6c43ff548c1ce5a2945674ab",
+                          "response": "The best time to visit the Dolomites is from May to September. For beginners, the Alpe di Siusi offers beautiful views with easy trails, perfect for first-time hikers.",
+                          "labels": [
+                              {
+                                  "label": "harmlessness",
+                                  "value": 5,
+                                  "description": "Obtional short description on how the above results were obtained"
+                              },
+                              {
+                                  "label": "honesty",
+                                  "value": 5,
+                                  "description": "Obtional short description on how the above results were obtained"
+                              },
+                              {
+                                  "label": "helpfulness",
+                                  "value": 5,
+                                  "description": "Obtional short description on how the above results were obtained"
+                              },
+                              {
+                                  "label": "naturalness",
+                                  "value": 5,
+                                  "description": "Obtional short description on how the above results were obtained"
+                              },
+                              {
+                                  "label": "readability",
+                                  "value": 5,
+                                  "description": "Obtional short description on how the above results were obtained"
+                              }
+                          ]
+                      }
+                  ]
+                }
+              ],
+              "paginationUrl": "https://api.e2f.com/annotations/batch-retrieve?syncDate=2024-10-01T20:00:01&page=2&pageSize=20", # Last page if empty
+              "totalPages": 21,
+              "utcTime": "2024-10-01 12:25:54"
+             }
+        '400':
+          description: Invalid input, details provided in the error message
+          content:
+            application/json:
+              example: { "message": "Wrong syncDate format", "statusCode": 400 }
+        '500':
+          description: Internal error
+          content:
+            application/json:
+              example: { "message": "Internal error", "statusCode": 500 }
